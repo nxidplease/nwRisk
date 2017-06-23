@@ -126,7 +126,8 @@ var defineAdjacentAreas = {
 }
 
 function Gui(game) {
-
+    const cardsFolder = 'assets/Cards/';
+    
     this.preload = function () {
         loadImage(GAME_MAP_PATH, function (image) {
             gameMap = image;
@@ -141,6 +142,14 @@ function Gui(game) {
             areas = game.areas;
             colorAreaNameMap = colorAndAreas[1];
         })
+        
+        fs.readdirSync(cardsFolder).forEach(file => {
+            loadImage(cardsFolder + file, function (image) {
+            game.cards.set(file, image);
+            console.log("This file name " + file + " with file " + image);
+            })
+            
+        });   
     }
 
     this.guiInit = function () {

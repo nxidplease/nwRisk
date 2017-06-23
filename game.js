@@ -18,6 +18,7 @@ const GAME_STATES = {
 function Game() {
     this.players = [];
     this.areas = {};
+    this.cards = new Map();
     this.continents = [];
     this.currPlayerIndex = 0;
     this.guiManager;
@@ -25,7 +26,8 @@ function Game() {
     this.fillAreas = function (colorMap) {
         var colorAreaNameMap = JSON.parse(fs.readFileSync(COLOR_AREA_NAME_MAP_PATH, 'utf-8'));
         var areas = JSON.parse(fs.readFileSync(AREAS_DATA_PATH, 'utf-8'));
-
+        
+        
         return [areas, colorAreaNameMap];
     }
 
