@@ -125,6 +125,7 @@ function Gui(game) {
         })
     }
     this.guiInit = function () {
+            UnitAmountSelector();
             currTurnP = createP('Waiting For: ');
             nextPhaseButton = createButton('Next Phase');
             nextPhaseButton.hide();
@@ -140,9 +141,10 @@ function Gui(game) {
         // callback - A function that will be called when the player finished, recieved a parameter(amount of units placed)
     this.nextGameState = function (player, callback, gameState) {
         var btlDialog = new BattleDialogController({
-            units: 5
-        }, {});
-        btlDialog.show();
+            units: 3
+        }, {
+            units: 1
+        });
         this.gameState = gameState;
         this.callback = callback;
         this.setCurrPlayer(player);
