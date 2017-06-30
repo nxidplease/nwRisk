@@ -126,6 +126,7 @@ function Gui(game) {
     }
     this.guiInit = function () {
             UnitAmountSelector();
+            diceResultWindow();
             currTurnP = createP('Waiting For: ');
             nextPhaseButton = createButton('Next Phase');
             nextPhaseButton.hide();
@@ -144,7 +145,7 @@ function Gui(game) {
             units: 3
         }, {
             units: 1
-        });
+        }, RandomApi.requestRandoms.bind(RandomApi));
         this.gameState = gameState;
         this.callback = callback;
         this.setCurrPlayer(player);

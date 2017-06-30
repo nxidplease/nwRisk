@@ -1,9 +1,8 @@
 const FIRST_TRADING_REINF_COUNT = 4;
 const MAX_TRADING_REINF = 30;
-
 const COLOR_AREA_NAME_MAP_PATH = 'data/colorToAreaName.json';
 const AREAS_DATA_PATH = 'data/areas.json';
-
+let RandomOrg = require('random-org');
 // An object that defines game states
 const GAME_STATES = {
     'DEPLOY_UNCLAIMED': 0
@@ -14,6 +13,26 @@ const GAME_STATES = {
     , 'FORT': 5
     , 'FINISH': 6
 };
+const RandomApi = {
+    apiKey: 'fd73ee09-f89e-4d8e-88e3-3da8cf297cb8'
+    , requestRandoms: function (numOfRandoms, callback) {
+        if (this.client === undefined) {
+            this.client = new RandomOrg({
+                apiKey: this.apiKey
+            });
+        }
+        this.client.generateIntegers(this.buildRequest(numOfRandoms)).then(function (result) {
+            callback(result.random.data);
+        });
+    }
+    , buildRequest: function (numOfRandoms) {
+        return {
+            min: 1
+            , max: 6
+            , n: numOfRandoms
+        }
+    }
+}
 
 function Game() {
     this.players = [];
@@ -21,18 +40,13 @@ function Game() {
     this.continents = [];
     this.currPlayerIndex = 0;
     this.guiManager;
-
     this.fillAreas = function (colorMap) {
         var colorAreaNameMap = JSON.parse(fs.readFileSync(COLOR_AREA_NAME_MAP_PATH, 'utf-8'));
         var areas = JSON.parse(fs.readFileSync(AREAS_DATA_PATH, 'utf-8'));
-
         return [areas, colorAreaNameMap];
     }
-
     this.guiManager = new Gui(this);
-
     this.preload = this.guiManager.preload;
-
     this.initGame = function (playerNames) {
         this.guiManager.guiInit();
         for (i = 0; i < playerNames.length; i++) {
@@ -40,88 +54,69 @@ function Game() {
             this.players.push(new Player(playerNames[i], startingArmies, newColor()));
         }
     }
-
     this.start = function () {
         this.gameState = GAME_STATES.DEPLOY_UNCLAIMED;
         this.deployUnclaimed();
     }
-
     var deployCallback = function (stateFunc) {
         this.currPlayerIndex = (this.currPlayerIndex + 1) % this.players.length;
-
         // Skip players that have no units left to place
         while (this.players[this.currPlayerIndex].unitsToPlace == 0 && this.unitsLeftToPlace()) {
             this.currPlayerIndex = (this.currPlayerIndex + 1) % this.players.length;
         }
-
         stateFunc.bind(this)();
-
     };
-
     // Games state functions
     this.deployUnclaimed = function () {
-
         const callback = deployCallback.bind(this, this.deployUnclaimed);
-
         if (!this.allAreasOwned()) {
             this.guiManager.nextGameState(this.players[this.currPlayerIndex], callback, this.gameState);
-        } else {
+        }
+        else {
             this.gameState = GAME_STATES.DEPLOY_CLAIMED;
             this.deployClaimed();
         }
     }
-
     this.deployClaimed = function () {
-
         const callback = deployCallback.bind(this, this.deployClaimed);
-
         if (this.unitsLeftToPlace()) {
             this.guiManager.nextGameState(this.players[this.currPlayerIndex], callback, this.gameState);
-        } else {
+        }
+        else {
             this.gameState = GAME_STATES.REINFORCE;
             this.reinforce();
         }
     }
-
     this.reinforce = function () {
         this.currPlayerIndex = (this.currPlayerIndex + 1) % this.players.length;
         this.players[this.currPlayerIndex].calcReinf();
         this.guiManager.nextGameState(this.players[this.currPlayerIndex], this.battle.bind(this), this.gameState);
     }
-
     this.battle = function () {
         this.gameState = GAME_STATES.BTTL;
         this.guiManager.nextGameState(this.players[this.currPlayerIndex], this.fortify.bind(this), this.gameState);
     }
-
     this.fortify = function () {
         this.gameState = GAME_STATES.FORT;
         this.guiManager.nextGameState(this.players[this.currPlayerIndex], this.cardTrade.bind(this), this.gameState);
     }
-
     this.allAreasOwned = function () {
         var ownedAreasSum = 0;
-
         for (i = 0; i < this.players.length; i++) {
             ownedAreasSum += Object.keys(this.players[i].areas).length;
         }
-
         return (ownedAreasSum == Object.keys(this.areas).length);
     }
-
     this.unitsLeftToPlace = function () {
-        var areUnitsLeft = false;
-
-        for (i = 0; i < this.players.length; i++) {
-            if (this.players[i].unitsToPlace > 0) {
-                areUnitsLeft = true;
+            var areUnitsLeft = false;
+            for (i = 0; i < this.players.length; i++) {
+                if (this.players[i].unitsToPlace > 0) {
+                    areUnitsLeft = true;
+                }
             }
+            return areUnitsLeft;
         }
-
-        return areUnitsLeft;
-    }
-
-    // IO propagation
+        // IO propagation
     this.draw = this.guiManager.draw.bind(this.guiManager);
     this.mouseMoved = this.guiManager.mouseMoved.bind(this.guiManager);
     this.mousePressed = this.guiManager.mousePressed.bind(this.guiManager);
@@ -130,7 +125,6 @@ function Game() {
     this.keyReleased = this.guiManager.keyReleased.bind(this.guiManager);
     this.handleMouseWheel = this.guiManager.handleMouseWheel.bind(this.guiManager);
 }
-
 var colorRanges = [{
     'from': 0
     , 'to': 50
@@ -144,7 +138,6 @@ var colorRanges = [{
     'from': 270
     , 'to': 320
 }];
-
 var nextColorRange = 0;
 
 function newColor() {
@@ -153,12 +146,9 @@ function newColor() {
     var clrRange = colorRanges[nextColorRange];
     var clr = color(random(clrRange.from, clrRange.to), 70, 70);
     nextColorRange++
-
     pop();
-
     return clr;
 }
-
 const playerAmountToArmyStartMap = {
     '3': 35
     , '4': 30
@@ -175,7 +165,6 @@ function Player(name, startUnits, clr) {
     this.sessionId = '';
     // This is an HSB color
     this.color = clr;
-
     this.calcReinf = function () {
         var reinf = Math.max(Math.floor(Object.keys(this.areas).length / 3), 3);
         // Add continents bonus when implemented

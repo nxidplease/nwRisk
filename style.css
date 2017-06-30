@@ -218,3 +218,56 @@ input[type=range]:focus {
 .action-button:hover {
     background-color: rgba(51, 101, 177, 0.75);
 }
+
+.dice-div {
+    width: 50%;
+    margin: 0 auto;
+}
+
+.left-triangle {
+    visibility: hidden;
+    display: inline-block;
+    border-left: 45px solid #3365b1;
+    border-bottom: 4px solid transparent;
+    border-top: 4px solid transparent;
+}
+
+.right-triangle {
+    display: inline-block;
+    border-right: 45px solid #3365b1;
+    border-bottom: 4px solid transparent;
+    border-top: 4px solid transparent;
+}
+
+.die-attacker {
+    display: inline-block;
+    color: #3365b1;
+    width: 8px;
+    padding: 0 3px;
+    margin-right: 0.781px;
+    box-shadow: 1px 1px 4px 0px inset;
+}
+
+.die-defender {
+    display: inline-block;
+    color: #3365b1;
+    width: 8px;
+    padding: 0 3px;
+    margin-left: 1.536px;
+    box-shadow: 1px 1px 4px 0px inset;
+}
+
+.float-right {
+    float: right;
+}
+
+.battle {
+    margin: 4px auto;
+    max-width: 75.317px;
+}
+
+.battle::after {
+    content: "";
+    display: block;
+    clear: both;
+}
