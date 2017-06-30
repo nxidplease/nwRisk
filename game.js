@@ -23,6 +23,8 @@ const RandomApi = {
         }
         this.client.generateIntegers(this.buildRequest(numOfRandoms)).then(function (result) {
             callback(result.random.data);
+        }).catch((err) => {
+            console.log(err);
         });
     }
     , buildRequest: function (numOfRandoms) {

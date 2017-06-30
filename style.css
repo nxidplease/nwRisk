@@ -106,6 +106,7 @@ canvas#defaultCanvas0 {
 .modal-body {
     padding: 10px 16px;
     padding-top: 20px;
+    text-align: center;
 }
 
 @-webkit-keyframes animatetop {
@@ -204,9 +205,9 @@ input[type=range]:focus {
 }
 
 .action-button {
-    display: block;
-    width: 35%;
-    margin: 0 auto;
+    display: inline-block;
+    /* width: 35%;
+    margin: 0 auto;*/
     margin-top: 30px;
     background-color: #3365b1;
     color: white;
@@ -215,7 +216,7 @@ input[type=range]:focus {
     font-size: 200%;
 }
 
-.action-button:hover {
+.action-button:hover, .action-button:disabled {
     background-color: rgba(51, 101, 177, 0.75);
 }
 
@@ -264,6 +265,7 @@ input[type=range]:focus {
 .battle {
     margin: 4px auto;
     max-width: 75.317px;
+    text-align: left;
 }
 
 .battle::after {

@@ -39,7 +39,13 @@ function BattleDialogController(sourceArea, destArea, generateRandoms) {
         });
     };
     this.resultPhase = function () {
-        diceResultWindow.attachToModal(this.attackerUnits, this.defendingUnits, generateRandoms);
+        diceResultWindow.attachToModal({
+            attacking: this.attackerUnits, 
+            defending: this.defendingUnits, 
+            randomGen: generateRandoms,
+            source: this.sourceArea,
+            dest: this.destArea
+        });
     };
     this.attackerPhase();
 }
@@ -155,10 +161,6 @@ function UnitAmountSelector() {
             UnitAmountSelector.created = true;
         }
     }
-    let removeEltFromParent = function (p5Element) {
-        let elt = p5Element.elt;
-        elt.parentNode.removeChild(elt);
-    }
     UnitAmountSelector.detachFromModal = function () {
         removeEltFromParent(UnitAmountSelector.header);
         removeEltFromParent(UnitAmountSelector.sliderForm);
@@ -208,13 +210,12 @@ function diceResultWindow() {
         diceResultWindow.triangles.push(triangle);
         return btlDiv;
     }
-    let createDiceDiv = function (attackUnits, defendUnits) {
+    
+    let addAttackerDefenderDice = function(diceDiv, attacking, defending){
         diceResultWindow.attackerDice = [];
         diceResultWindow.defenderDice = [];
         diceResultWindow.triangles = [];
         let fightingUnits = attackUnits + defendUnits;
-        let diceDiv = createDiv('');
-        diceDiv.addClass('dice-div');
         for (i = 0; i < Math.floor(fightingUnits / 2); i++) {
             diceDiv.child(createBatttleDiv());
         }
@@ -233,7 +234,33 @@ function diceResultWindow() {
             }
             diceDiv.child(btlDiv);
         }
+    }
+    
+    let createDiceDiv = function (attackUnits, defendUnits) {
+        let diceDiv = createDiv('');
+        diceDiv.addClass('dice-div');
+        addAttackerDefenderDice(diceDiv, attackUnits, defendUnits);
         return diceDiv;
+    }
+    let createRetreatButton = function(callback) {
+        return btnFactory.createButton({
+            txt: 'Retreat', 
+            callback: callback, 
+            classList: ['action-button'],
+            attributes: {
+                disabled: ''
+            }
+           });
+    }
+    let createKeepFighting = function(callback) {
+        return btnFactory.createButton({
+            txt: 'Keep Fighting', 
+            callback: callback,
+            classList: ['action-button'],
+            attributes: {
+                disabled: ''
+            }
+        });
     }
     let setTriangleSide = function (triangle, isLeft) {
         let removeClasses = (element) => {
@@ -250,8 +277,14 @@ function diceResultWindow() {
             triangle.style('visibility', 'visible');
         }
     }
-    diceResultWindow.setResults = function (randomArr, attackUnits, defendUnits) {
+    diceResultWindow.setResults = function ({randomArr, 
+                                             attackUnits : attacking, 
+                                             defendUnits: defending,
+                                             source,
+                                             dest}) {
         diceResultWindow.stopAnimation();
+        enableIfDisabled(diceResultWindow.retreatBtn);
+        
         let attackerResults = randomArr.slice(0, attackUnits);
         let defenderResults = randomArr.slice(attackUnits, attackUnits + defendUnits + 1);
         let byDescendingOrder = (a, b) => {
@@ -281,9 +314,11 @@ function diceResultWindow() {
                 }
                 if (attackerResult > defenderResult) {
                     setTriangleSide(triangle, true);
+                    dest.units--;
                 }
                 else {
                     setTriangleSide(triangle, false);
+                    source.units--;
                 }
             }
         }
@@ -293,7 +328,41 @@ function diceResultWindow() {
         else {
             attackerResults.forEach(setTriangles(defenderResults, false));
         }
+        
+        // Enable fight again if attacker has enough units and 
+        // defender still has defending units
+        if((source.units > 1) && (dest.units > 0)){
+            enableIfDisabled(diceResultWindow.keepFightingBtn);
+        }
     }
+    
+    let createResultWindowElements = function(attacking, defending, retreatCallback, keepFightingCallback){
+        diceResultWindow.diceDiv = createDiceDiv(attacking, defending);
+        diceResultWindow.retreatBtn = createRetreatButton(retreatCallback);
+        diceResultWindow.keepFightingBtn = createKeepFighting(keepFightingCallback);
+    }
+    
+    let updateResultWindowElements = function(attacking, defending, retreatCallback, keepFightingCallback){
+        updateDiceDiv(attacking, defending);
+        updateButtons(retreatCallback, keepFightingCallback);
+    }
+    
+    let updateDiceDiv = function(attacking, defending) {
+        addAttackerDefenderDice(diceResultWindow.diceDiv, attacking, defending);
+    }
+    
+    let updateButtons = function(retreatCb, keepFightingCb){
+        diceResultWindow.retreatBtn.mousePressed(retreatCb);
+        diceResultWindow.keepFightingBtn.mousePressed(keepFightingCb);
+    }
+    
+    let attachResultWindowElements = function(){
+        headerBodyBg.header.child(heading);
+        headerBodyBg.body.child(diceResultWindow.diceDiv);
+        headerBodyBg.body.child(diceResultWindow.retreatBtn);
+        headerBodyBg.body.child(diceResultWindow.keepFightingBtn);
+    }
+    
     diceResultWindow.startAnimation = function () {
         diceResultWindow.intervalId = setInterval(() => {
             let dieCb = (die) => {
@@ -306,16 +375,72 @@ function diceResultWindow() {
     diceResultWindow.stopAnimation = function () {
         clearInterval(diceResultWindow.intervalId);
     }
-    diceResultWindow.attachToModal = function (attackUnits, defendUnits, generateRandoms) {
-        headerBodyBg.header.child(heading);
-        headerBodyBg.body.child(createDiceDiv(attackUnits, defendUnits));
+    diceResultWindow.attachToModal = function ({attacking, 
+                                                defending,
+                                                randomGen,
+                                                source,
+                                                dest,
+                                                retreatCb,
+                                                keepFightingCb}) {
+        
+        if(diceResultWindow.created){
+            updateResultWindowElements(attacking, defending, retreatCb, keepFightingCb);
+        } else {
+            createResultWindowElements(attacking, defending, retreatCb, keepFightingCb);
+        }
+        
+        attachResultWindowElements();
         headerBodyBg.background.show();
         diceResultWindow.startAnimation();
-        generateRandoms(attackUnits + defendUnits, (randomArr) => {
-            diceResultWindow.setResults(randomArr, attackUnits, defendUnits)
+        randomGen(attacking + defending, (randomArr) => {
+            diceResultWindow.setResults(randomArr, attacking, defending, source, dest)
         });
     }
-    diceResultWindow.detachFromModal = function () {}
+    diceResultWindow.detachFromModal = function () {
+        headerBodyBg.background.hide();
+        removeEltFromParent(heading);
+        removeEltFromParent(diceResultWindow.diceDiv);
+        removeBtnFromParent(diceResultWindow.retreatBtn);
+        removeBtnFromParent(diceResultWindow.keepFightingBtn);
+    }
+}
+
+let btnFactory = {
+    createButton: function({txt='', callback, classList=[], style={}, attributes}){
+        let btn = createButton(txt);
+        
+        if(callback){
+            btn.mousePressed(callback);
+        }
+        
+        classList.forEach((cls) => {btn.addClass(cls)});
+        
+        for(prop in style){
+            btn.style(prop, style[prop]);
+        }
+        
+        for(atr in attributes){
+            btn.attribute(atr, attributes[atr]);
+        }
+        
+        return btn;
+    }
+}
+
+function enableIfDisabled(p5Element) {
+    if(p5Element.attribute('disabled')){
+        p5Element.removeAttribute('disabled');
+    }
+}
+
+function removeBtnFromParent(btn){
+    removeAllEventHandlers(btn);
+    removeEltFromParent(btn);
+}
+    
+function removeEltFromParent(p5Element) {
+    let elt = p5Element.elt;
+    elt.parentNode.removeChild(elt);
 }
 
 function removeAllEventHandlers(p5Element) {
