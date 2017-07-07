@@ -83,7 +83,7 @@ function getModalHeaderBodyBgDivs() {
 /*
     This class is in charge of all the logic behind the dialog
 */
-function BattleDialogController(sourceArea, destArea, generateRandoms, gameLogicCb) {
+function BattleDialogController(sourceArea, destArea, generateRandoms, guiCb) {
     this.sourceArea = sourceArea;
     this.destArea = destArea;
     // Calculate maximum attackers amount and pass it to the view
@@ -123,7 +123,7 @@ function BattleDialogController(sourceArea, destArea, generateRandoms, gameLogic
                 this.attackerPhase();
             }
             , winCb: this.winPhase
-            , retreatCb: gameLogicCb
+            , retreatCb: guiCb
         });
     };
     this.winPhase = function (lastFightAttackingUnits) {
@@ -136,6 +136,7 @@ function BattleDialogController(sourceArea, destArea, generateRandoms, gameLogic
                 this.destArea.units += val;
                 UnitAmountSelector.hide();
                 UnitAmountSelector.detachFromModal();
+                guiCb();
             }
         })
     }.bind(this);
@@ -427,6 +428,7 @@ function diceResultWindow() {
             }
             else {
                 // Attacker has insufficent units for attack, close the modal and let gui take control back
+                diceResultWindow.detachFromModal();
                 diceResultWindow.retreatCallback();
             }
         }

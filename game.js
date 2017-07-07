@@ -102,6 +102,11 @@ function Game() {
         this.gameState = GAME_STATES.FORT;
         this.guiManager.nextGameState(this.players[this.currPlayerIndex], this.cardTrade.bind(this), this.gameState);
     }
+    this.cardTrade = function () {
+        this.currPlayerIndex = (this.currPlayerIndex + 1) % this.players.length;
+        this.gameState = GAME_STATES.CARD_TRADE;
+        this.guiManager.nextGameState(this.players[this.currPlayerIndex], this.reinforce.bind(this), this.gameState);
+    }
     this.allAreasOwned = function () {
         var ownedAreasSum = 0;
         for (i = 0; i < this.players.length; i++) {

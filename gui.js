@@ -274,6 +274,49 @@ function Gui(game) {
             var ownedByPlayer = (adjacentAreaName in currPlayer.areas);
             return (((opts.adjacentToFoe && !ownedByPlayer) || (!opts.adjacentToFoe && ownedByPlayer)));
         }
+    
+    /*
+        Returns true if there is a path from sourceArea to destArea
+        of areas owned by the same player
+    */
+    this.pathOfSameOwner = function(sourceArea, destArea){
+        
+        let result = false;
+        
+        sourceArea.explored = true;
+        
+        for(areaName of sourceArea.adjacentAreaNames){
+            if(areaName === destArea.name){
+                // If destArea is an immediate adjacent area we 
+                // shuld return right away without checking the rest of the areas
+                return true;
+            } else if((areas[areaName].owner.name === destArea.owner.name) && (!areas[areaName].explored)){
+                if(this.pathOfSameOwner(areas[areaName], destArea)){
+                    // We want to return as soon as there is a true result,
+                    // otherwise we want the loop to continue
+                    return true;
+                }
+            }
+        }
+        
+        delete sourceArea.explored;
+    }
+    
+    /*
+        This function returns true if there is a path of
+        areas that are owned by sourceArea owner leading to destArea
+        that is also owned by sourceArea owner
+    */
+    this.areaReachableFromSource = function(destAreaName) {
+        
+        let destArea = areas[destAreaName];
+        
+        if(destArea.owner.name !== this.source.owner.name){
+            return false;
+        } else {
+            return this.pathOfSameOwner(this.source, destArea);
+        }
+    }
         // IO
     this.mouseMoved = function () {
         if (!waitingForGameLogic) {
@@ -314,9 +357,7 @@ function Gui(game) {
                     case GAME_STATES.FORT:
                         {
                             if (this.source) {
-                                var adjacentToSource = this.source.adjacentAreaNames.indexOf(currAreaName) != 0;
-                                var ownedByPlayer = currAreaName in currPlayer.areas;
-                                highlight = adjacentToSource && ownedByPlayer;
+                                highlight = this.areaReachableFromSource(currAreaName);
                             }
                             else {
                                 highlight = this.areaAdjacencyFunc(areas[currAreaName], {
@@ -367,15 +408,24 @@ function Gui(game) {
                     case GAME_STATES.BTTL:
                         {
                             if (this.source) {
-                                // Creating a closure to avoid issue with "this" when btlDialog calls the callback
-                                let resetGui = this.resetGui;
-                                let callback = this.callback;
-                                var btlDialog = new BattleDialogController(this.source, areas[highlightedAreaName], this.args[0], () => {
-                                    resetGui();
-                                    callback();
+                                
+                                waitingForGameLogic = true;
+                                
+                                let btlDialog = new BattleDialogController(this.source, areas[highlightedAreaName], this.args[0], () => {
+                                    this.resetHighlight();
+                                    this.source = undefined;
+                                    waitingForGameLogic = false;
                                 });
                             }
                             else {
+                                this.source = areas[highlightedAreaName];
+                            }
+                        }
+                    case GAME_STATES.FORT:
+                        {
+                            if(this.source){
+                                
+                            } else {
                                 this.source = areas[highlightedAreaName];
                             }
                         }
