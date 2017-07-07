@@ -8,9 +8,82 @@ const BATTLE_DLG_STATES = {
         , RESULT_PHASE: 2
     }
     /*
-        This class is in charge of all the logic behind the dialog
+        Various utilities for common operations on DOM elements
     */
-function BattleDialogController(sourceArea, destArea, generateRandoms) {
+let btnFactory = {
+    createButton: function ({
+        txt = '', callback, classList = [], style = {}, attributes
+    }) {
+        let btn = createButton(txt);
+        if (callback) {
+            btn.mousePressed(callback);
+        }
+        classList.forEach((cls) => {
+            btn.addClass(cls)
+        });
+        for (prop in style) {
+            btn.style(prop, style[prop]);
+        }
+        for (atr in attributes) {
+            btn.attribute(atr, attributes[atr]);
+        }
+        return btn;
+    }
+}
+
+function enableIfDisabled(p5Element) {
+    if ((p5Element.attribute('disabled') !== null) && (p5Element.attribute('disabled') !== undefined)) {
+        p5Element.removeAttribute('disabled');
+    }
+}
+
+function removeBtnFromParent(btn) {
+    removeAllEventHandlers(btn);
+    removeEltFromParent(btn);
+}
+
+function removeEltFromParent(p5Element) {
+    let elt = p5Element.elt;
+    elt.parentNode.removeChild(elt);
+}
+
+function removeAllEventHandlers(p5Element) {
+    for (var ev in p5Element._events) {
+        p5Element.elt.removeEventListener(ev, p5Element._events[ev]);
+    }
+    // Clean events map
+    p5Element._events = {};
+}
+
+function getModalHeaderBodyBgDivs() {
+    if (getModalHeaderBodyBgDivs.modalDivs) {
+        return getModalHeaderBodyBgDivs.modalDivs;
+    }
+    else {
+        let modalBackground = createDiv('');
+        modalBackground.addClass('modal-background');
+        let modalContentDiv = createDiv('');
+        modalContentDiv.addClass('modal-content');
+        modalBackground.child(modalContentDiv);
+        let headerDiv = createDiv('');
+        let bodyDiv = createDiv('');
+        headerDiv.addClass('modal-header');
+        bodyDiv.addClass('modal-body');
+        modalContentDiv.child(headerDiv);
+        modalContentDiv.child(bodyDiv);
+        let modalDivs = {
+            header: headerDiv
+            , body: bodyDiv
+            , background: modalBackground
+        };
+        getModalHeaderBodyBgDivs.modalDivs = modalDivs;
+        return modalDivs;
+    }
+}
+/*
+    This class is in charge of all the logic behind the dialog
+*/
+function BattleDialogController(sourceArea, destArea, generateRandoms, gameLogicCb) {
     this.sourceArea = sourceArea;
     this.destArea = destArea;
     // Calculate maximum attackers amount and pass it to the view
@@ -40,13 +113,32 @@ function BattleDialogController(sourceArea, destArea, generateRandoms) {
     };
     this.resultPhase = function () {
         diceResultWindow.attachToModal({
-            attacking: this.attackerUnits, 
-            defending: this.defendingUnits, 
-            randomGen: generateRandoms,
-            source: this.sourceArea,
-            dest: this.destArea
+            attacking: this.attackerUnits
+            , defending: this.defendingUnits
+            , randomGen: generateRandoms
+            , source: this.sourceArea
+            , dest: this.destArea
+            , keepFightingCb: () => {
+                diceResultWindow.detachFromModal();
+                this.attackerPhase();
+            }
+            , winCb: this.winPhase
+            , retreatCb: gameLogicCb
         });
     };
+    this.winPhase = function (lastFightAttackingUnits) {
+        UnitAmountSelector.attachToModal({
+            maxVal: this.sourceArea.units - 1
+            , phaseNoun: 'defending your new area'
+            , btnTxt: 'Move Units'
+            , btnCallback: (val) => {
+                this.sourceArea.units -= val;
+                this.destArea.units += val;
+                UnitAmountSelector.hide();
+                UnitAmountSelector.detachFromModal();
+            }
+        })
+    }.bind(this);
     this.attackerPhase();
 }
 /*
@@ -151,15 +243,13 @@ function UnitAmountSelector() {
     UnitAmountSelector.attachToModal = function (opts) {
         if (UnitAmountSelector.created) {
             UnitAmountSelector.update(opts);
-            attachAmountSelectorElementsToModal();
-            headerBodyBackground.background.show();
         }
         else {
             UnitAmountSelector.create(opts);
-            attachAmountSelectorElementsToModal();
-            headerBodyBackground.background.show();
             UnitAmountSelector.created = true;
         }
+        attachAmountSelectorElementsToModal();
+        headerBodyBackground.background.show();
     }
     UnitAmountSelector.detachFromModal = function () {
         removeEltFromParent(UnitAmountSelector.header);
@@ -174,23 +264,27 @@ function UnitAmountSelector() {
 function diceResultWindow() {
     let headerBodyBg = getModalHeaderBodyBgDivs();
     let heading = createElement('h2', 'Battle Results');
+    removeEltFromParent(heading);
     let generatePseudoRandom = function () {
         return Math.floor((Math.random() * 6) + 1);
     }
-    let createLeftTriangle = function () {
+    let createLeftTriangle = function (btlDiv) {
         let triangle = createDiv('');
         triangle.addClass('left-triangle');
-        return triangle;
+        btlDiv.child(triangle);
+        diceResultWindow.triangles.push(triangle);
     }
-    let createAttackerDie = function () {
+    let createAttackerDie = function (btlDiv) {
         let die = createDiv(generatePseudoRandom());
         die.addClass('die-attacker');
-        return die;
+        btlDiv.child(die);
+        diceResultWindow.attackerDice.push(die);
     }
-    let createDefenderDie = function () {
+    let createDefenderDie = function (btlDiv) {
         let die = createDiv(generatePseudoRandom());
         die.addClass('die-defender');
-        return die;
+        btlDiv.child(die);
+        diceResultWindow.defenderDice.push(die);
     }
     let createEmptyBattleDiv = function () {
         let btlDiv = createDiv('');
@@ -199,65 +293,55 @@ function diceResultWindow() {
     }
     let createBatttleDiv = function () {
         let btlDiv = createEmptyBattleDiv();
-        let atkDie = createAttackerDie();
-        let defDie = createDefenderDie();
-        let triangle = createLeftTriangle();
-        btlDiv.child(atkDie);
-        btlDiv.child(triangle);
-        btlDiv.child(defDie);
-        diceResultWindow.attackerDice.push(atkDie);
-        diceResultWindow.defenderDice.push(defDie);
-        diceResultWindow.triangles.push(triangle);
+        let atkDie = createAttackerDie(btlDiv);
+        let triangle = createLeftTriangle(btlDiv);
+        let defDie = createDefenderDie(btlDiv);
         return btlDiv;
     }
-    
-    let addAttackerDefenderDice = function(diceDiv, attacking, defending){
+    let addAttackerDefenderDice = function (diceDiv, attacking, defending) {
         diceResultWindow.attackerDice = [];
         diceResultWindow.defenderDice = [];
         diceResultWindow.triangles = [];
-        let fightingUnits = attackUnits + defendUnits;
-        for (i = 0; i < Math.floor(fightingUnits / 2); i++) {
+        let fullBattleDivs = Math.min(attacking, defending);
+        for (i = 0; i < fullBattleDivs; i++) {
             diceDiv.child(createBatttleDiv());
         }
-        if (fightingUnits % 2 !== 0) {
-            let btlDiv = createEmptyBattleDiv();
-            if (attackUnits > defendUnits) {
-                let atkDie = createAttackerDie();
-                btlDiv.child(atkDie);
-                diceResultWindow.attackerDice.push(atkDie);
+        let diceOverflow = function (createDie, overflow) {
+            for (i = 0; i < overflow; i++) {
+                let btlDiv = createEmptyBattleDiv();
+                let die = createDie(btlDiv);
+                diceDiv.child(btlDiv);
             }
-            else {
-                let defDie = createDefenderDie();
-                defDie.addClass('float-right');
-                btlDiv.child(defDie);
-                diceResultWindow.defenderDice.push(defDie);
-            }
-            diceDiv.child(btlDiv);
+        }
+        if (attacking > fullBattleDivs) {
+            diceOverflow(createAttackerDie, attacking - fullBattleDivs);
+        }
+        else if (defending > fullBattleDivs) {
+            diceOverflow(createDefenderDie, defending - fullBattleDivs);
         }
     }
-    
     let createDiceDiv = function (attackUnits, defendUnits) {
         let diceDiv = createDiv('');
         diceDiv.addClass('dice-div');
         addAttackerDefenderDice(diceDiv, attackUnits, defendUnits);
         return diceDiv;
     }
-    let createRetreatButton = function(callback) {
+    let createRetreatButton = function () {
         return btnFactory.createButton({
-            txt: 'Retreat', 
-            callback: callback, 
-            classList: ['action-button'],
-            attributes: {
+            txt: 'Retreat'
+            , callback: diceResultWindow.retreatCallback
+            , classList: ['action-button']
+            , attributes: {
                 disabled: ''
             }
-           });
+        });
     }
-    let createKeepFighting = function(callback) {
+    let createKeepFighting = function (callback) {
         return btnFactory.createButton({
-            txt: 'Keep Fighting', 
-            callback: callback,
-            classList: ['action-button'],
-            attributes: {
+            txt: 'Keep Fighting'
+            , callback: callback
+            , classList: ['action-button']
+            , attributes: {
                 disabled: ''
             }
         });
@@ -277,14 +361,9 @@ function diceResultWindow() {
             triangle.style('visibility', 'visible');
         }
     }
-    diceResultWindow.setResults = function ({randomArr, 
-                                             attackUnits : attacking, 
-                                             defendUnits: defending,
-                                             source,
-                                             dest}) {
+    diceResultWindow.setResults = function (randomArr, attackUnits, defendUnits, source, dest) {
         diceResultWindow.stopAnimation();
         enableIfDisabled(diceResultWindow.retreatBtn);
-        
         let attackerResults = randomArr.slice(0, attackUnits);
         let defenderResults = randomArr.slice(attackUnits, attackUnits + defendUnits + 1);
         let byDescendingOrder = (a, b) => {
@@ -328,41 +407,52 @@ function diceResultWindow() {
         else {
             attackerResults.forEach(setTriangles(defenderResults, false));
         }
-        
         // Enable fight again if attacker has enough units and 
         // defender still has defending units
-        if((source.units > 1) && (dest.units > 0)){
+        if ((source.units > 1) && (dest.units > 0)) {
             enableIfDisabled(diceResultWindow.keepFightingBtn);
         }
+        else {
+            /* Force closing of window and resolve the whole battle
+               either giving control of destArea to attacker, or simply quiting
+               because attacker cannot attack anymore due to insufficent units.
+            */
+            if (dest.units === 0) {
+                // Attacker won and he owns the dest area
+                delete dest.owner.areas[dest.name];
+                dest.owner = source.owner;
+                source.owner.areas[dest.name] = dest;
+                diceResultWindow.detachFromModal();
+                diceResultWindow.winCb(attackUnits);
+            }
+            else {
+                // Attacker has insufficent units for attack, close the modal and let gui take control back
+                diceResultWindow.retreatCallback();
+            }
+        }
     }
-    
-    let createResultWindowElements = function(attacking, defending, retreatCallback, keepFightingCallback){
+    let createResultWindowElements = function (attacking, defending, keepFightingCallback) {
         diceResultWindow.diceDiv = createDiceDiv(attacking, defending);
-        diceResultWindow.retreatBtn = createRetreatButton(retreatCallback);
+        diceResultWindow.retreatBtn = createRetreatButton();
         diceResultWindow.keepFightingBtn = createKeepFighting(keepFightingCallback);
     }
-    
-    let updateResultWindowElements = function(attacking, defending, retreatCallback, keepFightingCallback){
+    let updateResultWindowElements = function (attacking, defending, keepFightingCallback) {
         updateDiceDiv(attacking, defending);
-        updateButtons(retreatCallback, keepFightingCallback);
+        updateButtons(keepFightingCallback);
     }
-    
-    let updateDiceDiv = function(attacking, defending) {
+    let updateDiceDiv = function (attacking, defending) {
         addAttackerDefenderDice(diceResultWindow.diceDiv, attacking, defending);
     }
-    
-    let updateButtons = function(retreatCb, keepFightingCb){
-        diceResultWindow.retreatBtn.mousePressed(retreatCb);
+    let updateButtons = function (keepFightingCb) {
+        diceResultWindow.retreatBtn.mousePressed(diceResultWindow.retreatCallback);
         diceResultWindow.keepFightingBtn.mousePressed(keepFightingCb);
     }
-    
-    let attachResultWindowElements = function(){
+    let attachResultWindowElements = function () {
         headerBodyBg.header.child(heading);
         headerBodyBg.body.child(diceResultWindow.diceDiv);
         headerBodyBg.body.child(diceResultWindow.retreatBtn);
         headerBodyBg.body.child(diceResultWindow.keepFightingBtn);
     }
-    
     diceResultWindow.startAnimation = function () {
         diceResultWindow.intervalId = setInterval(() => {
             let dieCb = (die) => {
@@ -375,20 +465,17 @@ function diceResultWindow() {
     diceResultWindow.stopAnimation = function () {
         clearInterval(diceResultWindow.intervalId);
     }
-    diceResultWindow.attachToModal = function ({attacking, 
-                                                defending,
-                                                randomGen,
-                                                source,
-                                                dest,
-                                                retreatCb,
-                                                keepFightingCb}) {
-        
-        if(diceResultWindow.created){
-            updateResultWindowElements(attacking, defending, retreatCb, keepFightingCb);
-        } else {
-            createResultWindowElements(attacking, defending, retreatCb, keepFightingCb);
+    diceResultWindow.attachToModal = function ({
+        attacking, defending, randomGen, source, dest, retreatCb, keepFightingCb, winCb
+    }) {
+        diceResultWindow.retreatCallback = retreatCb;
+        diceResultWindow.winCb = winCb;
+        if (diceResultWindow.created) {
+            updateResultWindowElements(attacking, defending, keepFightingCb);
         }
-        
+        else {
+            createResultWindowElements(attacking, defending, keepFightingCb);
+        }
         attachResultWindowElements();
         headerBodyBg.background.show();
         diceResultWindow.startAnimation();
@@ -402,77 +489,10 @@ function diceResultWindow() {
         removeEltFromParent(diceResultWindow.diceDiv);
         removeBtnFromParent(diceResultWindow.retreatBtn);
         removeBtnFromParent(diceResultWindow.keepFightingBtn);
-    }
-}
-
-let btnFactory = {
-    createButton: function({txt='', callback, classList=[], style={}, attributes}){
-        let btn = createButton(txt);
-        
-        if(callback){
-            btn.mousePressed(callback);
-        }
-        
-        classList.forEach((cls) => {btn.addClass(cls)});
-        
-        for(prop in style){
-            btn.style(prop, style[prop]);
-        }
-        
-        for(atr in attributes){
-            btn.attribute(atr, attributes[atr]);
-        }
-        
-        return btn;
-    }
-}
-
-function enableIfDisabled(p5Element) {
-    if(p5Element.attribute('disabled')){
-        p5Element.removeAttribute('disabled');
-    }
-}
-
-function removeBtnFromParent(btn){
-    removeAllEventHandlers(btn);
-    removeEltFromParent(btn);
-}
-    
-function removeEltFromParent(p5Element) {
-    let elt = p5Element.elt;
-    elt.parentNode.removeChild(elt);
-}
-
-function removeAllEventHandlers(p5Element) {
-    for (var ev in p5Element._events) {
-        p5Element.elt.removeEventListener(ev, p5Element._events[ev]);
-    }
-    // Clean events map
-    p5Element._events = {};
-}
-
-function getModalHeaderBodyBgDivs() {
-    if (getModalHeaderBodyBgDivs.modalDivs) {
-        return getModalHeaderBodyBgDivs.modalDivs;
-    }
-    else {
-        let modalBackground = createDiv('');
-        modalBackground.addClass('modal-background');
-        let modalContentDiv = createDiv('');
-        modalContentDiv.addClass('modal-content');
-        modalBackground.child(modalContentDiv);
-        let headerDiv = createDiv('');
-        let bodyDiv = createDiv('');
-        headerDiv.addClass('modal-header');
-        bodyDiv.addClass('modal-body');
-        modalContentDiv.child(headerDiv);
-        modalContentDiv.child(bodyDiv);
-        let modalDivs = {
-            header: headerDiv
-            , body: bodyDiv
-            , background: modalBackground
+        let removeDie = (die) => {
+            die.remove()
         };
-        getModalHeaderBodyBgDivs.modalDivs = modalDivs;
-        return modalDivs;
+        diceResultWindow.attackerDice.forEach(removeDie);
+        diceResultWindow.defenderDice.forEach(removeDie);
     }
 }

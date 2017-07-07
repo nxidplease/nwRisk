@@ -7,7 +7,7 @@ var gameMap;
 var colorMap;
 var centerSize = 25;
 var currPlayer;
-var watingForGameLogic = true;
+var waitingForGameLogic = true;
 var colorAreaNameMap;
 var highlightedAreaName = '';
 var areas;
@@ -140,16 +140,12 @@ function Gui(game) {
         // unclaimed - A boolean specifing whether or not the player should be forced to place units on unclaimed areas
         //
         // callback - A function that will be called when the player finished, recieved a parameter(amount of units placed)
-    this.nextGameState = function (player, callback, gameState) {
-        var btlDialog = new BattleDialogController({
-            units: 3
-        }, {
-            units: 1
-        }, RandomApi.requestRandoms.bind(RandomApi));
+    this.nextGameState = function (player, callback, gameState, ...args) {
         this.gameState = gameState;
         this.callback = callback;
         this.setCurrPlayer(player);
-        watingForGameLogic = false;
+        this.args = args;
+        waitingForGameLogic = false;
     }
     this.setCurrPlayer = function (player) {
             currPlayer = player;
@@ -189,7 +185,7 @@ function Gui(game) {
     }
     this.updatePlayerStatus = function () {
             // Update curr player paragraph
-            currTurnP.html('Wating for: ' + currPlayer.name + '<br> Units Left: ' + currPlayer.unitsToPlace);
+            currTurnP.html('Waiting for: ' + currPlayer.name + '<br> Units Left: ' + currPlayer.unitsToPlace);
         }
         // Drawing
     this.draw = function () {
@@ -280,7 +276,7 @@ function Gui(game) {
         }
         // IO
     this.mouseMoved = function () {
-        if (!watingForGameLogic) {
+        if (!waitingForGameLogic) {
             if (mouseX < colorMap.width && mouseY < colorMap.height) {
                 currentColor = this.getCurrColor();
                 if (highlightedAreaName.localeCompare('') != 0) {
@@ -338,7 +334,7 @@ function Gui(game) {
         }
     }
     this.mousePressed = function mousePressed() {
-        if (!watingForGameLogic) {
+        if (!waitingForGameLogic) {
             if (mouseButton == LEFT && this.mouseWithinCanvas()) {
                 if (highlightedAreaName in areas) {
                     switch (this.gameState) {
@@ -350,7 +346,7 @@ function Gui(game) {
                                 currPlayer.areas[highlightedAreaName] = areas[highlightedAreaName];
                                 currPlayer.unitsToPlace--;
                                 this.resetGui();
-                                //this.callback();
+                                this.callback();
                             }
                             break;
                         }
@@ -371,8 +367,13 @@ function Gui(game) {
                     case GAME_STATES.BTTL:
                         {
                             if (this.source) {
-                                var btlDialog = new BattleDialogController(this.source, areas[highlightedAreaName]);
-                                btlDialog.show();
+                                // Creating a closure to avoid issue with "this" when btlDialog calls the callback
+                                let resetGui = this.resetGui;
+                                let callback = this.callback;
+                                var btlDialog = new BattleDialogController(this.source, areas[highlightedAreaName], this.args[0], () => {
+                                    resetGui();
+                                    callback();
+                                });
                             }
                             else {
                                 this.source = areas[highlightedAreaName];
@@ -394,7 +395,7 @@ function Gui(game) {
     }
     this.handleMouseWheel = function (e) {}
     this.keyPressed = function () {
-        if (!watingForGameLogic) {
+        if (!waitingForGameLogic) {
             // Safegaurd
             if (keys.indexOf(keyCode) == -1) {
                 keys.push(keyCode);
@@ -402,7 +403,7 @@ function Gui(game) {
         }
     }
     this.keyReleased = function () {
-        if (!watingForGameLogic) {
+        if (!waitingForGameLogic) {
             if (keys.indexOf(keyCode) != -1) {
                 keys.slice(keys.indexOf(keyCode), 1);
             }
@@ -434,6 +435,6 @@ function Gui(game) {
         }
         // Wait until callback calls gui again
         nextPhaseButton.elt.disabled = true;
-        watingForGameLogic = true;
+        waitingForGameLogic = true;
     }
 }

@@ -206,8 +206,8 @@ input[type=range]:focus {
 
 .action-button {
     display: inline-block;
-    /* width: 35%;
-    margin: 0 auto;*/
+    /* width: 35%;*/
+    margin: 0 5px;
     margin-top: 30px;
     background-color: #3365b1;
     color: white;
@@ -216,7 +216,8 @@ input[type=range]:focus {
     font-size: 200%;
 }
 
-.action-button:hover, .action-button:disabled {
+.action-button:hover,
+.action-button:disabled {
     background-color: rgba(51, 101, 177, 0.75);
 }
 

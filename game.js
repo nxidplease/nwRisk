@@ -96,7 +96,7 @@ function Game() {
     }
     this.battle = function () {
         this.gameState = GAME_STATES.BTTL;
-        this.guiManager.nextGameState(this.players[this.currPlayerIndex], this.fortify.bind(this), this.gameState);
+        this.guiManager.nextGameState(this.players[this.currPlayerIndex], this.fortify.bind(this), this.gameState, RandomApi.requestRandoms.bind(RandomApi));
     }
     this.fortify = function () {
         this.gameState = GAME_STATES.FORT;
