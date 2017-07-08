@@ -143,16 +143,18 @@ function Gui(game) {
             colorAreaNameMap = colorAndAreas[1];
         })
         
-        fs.readdirSync(cardsFolder).forEach(file => {
-            loadImage(cardsFolder + file, function (image) {
-            game.cards.set(file, image);
-            console.log("This file name " + file + " with file " + image);
-            })
+        fs.readdir(cardsFolder, function (err, files) {
+            if (err) {
+                throw err;
+            } 
             
+            game.cards = files;
         });   
     }
 
     this.guiInit = function () {
+        cardsLine = createDiv();
+        cardsLine.addClass('cards-div');
         currTurnP = createP('Waiting For: ');
         nextPhaseButton = createButton('Next Phase');
         nextPhaseButton.hide();

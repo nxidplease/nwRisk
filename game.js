@@ -18,7 +18,7 @@ const GAME_STATES = {
 function Game() {
     this.players = [];
     this.areas = {};
-    this.cards = new Map();
+    this.cards = [];
     this.continents = [];
     this.currPlayerIndex = 0;
     this.guiManager;

@@ -102,6 +102,17 @@ canvas#defaultCanvas0 {
     padding: 2px 16px;
 }
 
+.cards-div {
+    float:left; 
+    min-height:200px; 
+    max-width:100px
+}
+
+.cards-img {
+    width:100%; 
+    margin:2px;
+}
+
 @-webkit-keyframes animatetop {
     from {
         top: -300px;
