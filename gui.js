@@ -157,11 +157,12 @@ function Gui(game) {
         switch (this.gameState) {
         case GAME_STATES.DEPLOY_CLAIMED:
             {
-                nextPhaseButton.elt.disabled = true;
+                nextPhaseButton.attribute('disabled', "");
             }
         case GAME_STATES.BTTL:
             {
                 this.showNextButton();
+                nextPhaseButton.removeAttribute('disabled');
                 break;
             }
         default:
@@ -274,49 +275,46 @@ function Gui(game) {
             var ownedByPlayer = (adjacentAreaName in currPlayer.areas);
             return (((opts.adjacentToFoe && !ownedByPlayer) || (!opts.adjacentToFoe && ownedByPlayer)));
         }
-    
-    /*
-        Returns true if there is a path from sourceArea to destArea
-        of areas owned by the same player
-    */
-    this.pathOfSameOwner = function(sourceArea, destArea){
-        
-        let result = false;
-        
-        sourceArea.explored = true;
-        
-        for(areaName of sourceArea.adjacentAreaNames){
-            if(areaName === destArea.name){
-                // If destArea is an immediate adjacent area we 
-                // shuld return right away without checking the rest of the areas
-                return true;
-            } else if((areas[areaName].owner.name === destArea.owner.name) && (!areas[areaName].explored)){
-                if(this.pathOfSameOwner(areas[areaName], destArea)){
-                    // We want to return as soon as there is a true result,
-                    // otherwise we want the loop to continue
-                    return true;
+        /*
+            Returns true if there is a path from sourceArea to destArea
+            of areas owned by the same player
+        */
+    this.pathOfSameOwner = function (sourceArea, destArea) {
+            let result = false;
+            sourceArea.explored = true;
+            for (areaName of sourceArea.adjacentAreaNames) {
+                if (areaName === destArea.name) {
+                    // If destArea is an immediate adjacent area we 
+                    // shuld return right away without checking the rest of the areas
+                    result = true;
+                    break;
+                }
+                else if ((areas[areaName].owner.name === destArea.owner.name) && (!areas[areaName].explored)) {
+                    if (this.pathOfSameOwner(areas[areaName], destArea)) {
+                        // We want to return as soon as there is a true result,
+                        // otherwise we want the loop to continue
+                        result = true;
+                        break;
+                    }
                 }
             }
+            delete sourceArea.explored;
+            return result;
         }
-        
-        delete sourceArea.explored;
-    }
-    
-    /*
-        This function returns true if there is a path of
-        areas that are owned by sourceArea owner leading to destArea
-        that is also owned by sourceArea owner
-    */
-    this.areaReachableFromSource = function(destAreaName) {
-        
-        let destArea = areas[destAreaName];
-        
-        if(destArea.owner.name !== this.source.owner.name){
-            return false;
-        } else {
-            return this.pathOfSameOwner(this.source, destArea);
+        /*
+            This function returns true if there is a path of
+            areas that are owned by sourceArea owner leading to destArea
+            that is also owned by sourceArea owner
+        */
+    this.areaReachableFromSource = function (destAreaName) {
+            let destArea = areas[destAreaName];
+            if (destArea.owner.name !== this.source.owner.name) {
+                return false;
+            }
+            else {
+                return this.pathOfSameOwner(this.source, destArea);
+            }
         }
-    }
         // IO
     this.mouseMoved = function () {
         if (!waitingForGameLogic) {
@@ -408,9 +406,7 @@ function Gui(game) {
                     case GAME_STATES.BTTL:
                         {
                             if (this.source) {
-                                
                                 waitingForGameLogic = true;
-                                
                                 let btlDialog = new BattleDialogController(this.source, areas[highlightedAreaName], this.args[0], () => {
                                     this.resetHighlight();
                                     this.source = undefined;
@@ -420,14 +416,30 @@ function Gui(game) {
                             else {
                                 this.source = areas[highlightedAreaName];
                             }
+                            break;
                         }
                     case GAME_STATES.FORT:
                         {
-                            if(this.source){
-                                
-                            } else {
+                            if (this.source) {
+                                let dest = areas[highlightedAreaName];
+                                UnitAmountSelector.attachToModal({
+                                    max: this.source.units - 1
+                                    , phaseNoun: 'Fortification'
+                                    , btnTxt: 'Move Units'
+                                    , btnCallback: (movedUnits) => {
+                                        this.source.units -= movedUnits;
+                                        dest.units += movedUnits;
+                                        UnitAmountSelector.hide();
+                                        UnitAmountSelector.detachFromModal();
+                                        this.resetGui();
+                                        this.callback();
+                                    }
+                                })
+                            }
+                            else {
                                 this.source = areas[highlightedAreaName];
                             }
+                            break;
                         }
                     }
                     this.updatePlayerStatus();

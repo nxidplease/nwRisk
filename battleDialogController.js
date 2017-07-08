@@ -89,7 +89,7 @@ function BattleDialogController(sourceArea, destArea, generateRandoms, guiCb) {
     // Calculate maximum attackers amount and pass it to the view
     this.attackerPhase = function () {
         UnitAmountSelector.attachToModal({
-            maxVal: Math.min(this.sourceArea.units - 1, MAX_ATTACKERS)
+            max: Math.min(this.sourceArea.units - 1, MAX_ATTACKERS)
             , phaseNoun: 'Attack'
             , btnTxt: 'Attack'
             , btnCallback: (val) => {
@@ -100,7 +100,7 @@ function BattleDialogController(sourceArea, destArea, generateRandoms, guiCb) {
     }
     this.defenderPhase = function () {
         UnitAmountSelector.update({
-            maxVal: Math.min(this.destArea.units, MAX_DEFENDERS)
+            max: Math.min(this.destArea.units, MAX_DEFENDERS)
             , phaseNoun: 'Defence'
             , btnTxt: 'Defend'
             , btnCallback: (val) => {
@@ -128,7 +128,9 @@ function BattleDialogController(sourceArea, destArea, generateRandoms, guiCb) {
     };
     this.winPhase = function (lastFightAttackingUnits) {
         UnitAmountSelector.attachToModal({
-            maxVal: this.sourceArea.units - 1
+            max: this.sourceArea.units - 1
+            , min: lastFightAttackingUnits
+            , startingVal: lastFightAttackingUnits
             , phaseNoun: 'defending your new area'
             , btnTxt: 'Move Units'
             , btnCallback: (val) => {
@@ -147,15 +149,18 @@ function BattleDialogController(sourceArea, destArea, generateRandoms, guiCb) {
 */
 function UnitAmountSelector() {
     let headerBodyBackground = getModalHeaderBodyBgDivs();
-    let updateSlider = function (maxVal, sliderOut) {
+    let updateSlider = function ({
+        max, min = 1, startingVal = max, sliderOut
+    }) {
         // If slider was created previously, only update it's maxVal
         if (UnitAmountSelector.slider) {
-            UnitAmountSelector.slider.attribute('max', maxVal);
-            UnitAmountSelector.slider.value(maxVal);
+            UnitAmountSelector.slider.attribute('max', max);
+            UnitAmountSelector.slider.attribute('min', min);
+            UnitAmountSelector.slider.value(startingVal);
             UnitAmountSelector.recalcSliderOutPos();
         }
         else {
-            let slider = createSlider(1, maxVal, maxVal, 1);
+            let slider = createSlider(min, max, startingVal, 1);
             slider.id('unitSlider');
             let recalcSliderOutPos = function () {
                 let maxVal = parseInt(slider.attribute('max'));
@@ -179,20 +184,21 @@ function UnitAmountSelector() {
         }
         return UnitAmountSelector.slider;
     }
-    let createSliderOut = function (maxVal) {
+    let createSliderOut = function (startingVal) {
         let sliderOut = createElement('output');
         sliderOut.id('sliderOut');
         sliderOut.attribute('for', 'unitSlider');
-        sliderOut.value(maxVal);
+        sliderOut.value(startingVal);
         return sliderOut;
     }
-    let createSliderForm = function (maxSliderVal) {
+    let createSliderForm = function (opts) {
         let form = createElement('form');
         form.id('sliderForm');
         form.attribute('oninput', 'sliderOut.value = unitSlider.valueAsNumber');
         form.addClass('sliderForm');
-        let sliderOut = createSliderOut(maxSliderVal);
-        let slider = updateSlider(maxSliderVal, sliderOut);
+        let sliderOut = createSliderOut(opts.startingVal ? opts.startingVal : opts.max);
+        opts.sliderOut = sliderOut;
+        let slider = updateSlider(opts);
         form.child(sliderOut);
         form.child(slider);
         UnitAmountSelector.sliderForm = form;
@@ -227,13 +233,13 @@ function UnitAmountSelector() {
         return UnitAmountSelector.actionBtn;
     }
     UnitAmountSelector.update = function (opts) {
-        updateSlider(opts.maxVal);
+        updateSlider(opts);
         updateHeader(opts.phaseNoun);
         updateActionButton(opts.btnTxt, opts.btnCallback);
     }
     UnitAmountSelector.create = function (opts) {
         updateHeader(opts.phaseNoun);
-        createSliderForm(opts.maxVal);
+        createSliderForm(opts);
         updateActionButton(opts.btnTxt, opts.btnCallback);
     }
     let attachAmountSelectorElementsToModal = function () {
@@ -470,7 +476,10 @@ function diceResultWindow() {
     diceResultWindow.attachToModal = function ({
         attacking, defending, randomGen, source, dest, retreatCb, keepFightingCb, winCb
     }) {
-        diceResultWindow.retreatCallback = retreatCb;
+        diceResultWindow.retreatCallback = () => {
+            diceResultWindow.detachFromModal();
+            retreatCb();
+        };
         diceResultWindow.winCb = winCb;
         if (diceResultWindow.created) {
             updateResultWindowElements(attacking, defending, keepFightingCb);
