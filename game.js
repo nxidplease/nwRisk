@@ -39,6 +39,7 @@ const RandomApi = {
 function Game() {
     this.players = [];
     this.areas = {};
+    this.cards = new Map();
     this.continents = [];
     this.currPlayerIndex = 0;
     this.guiManager;
