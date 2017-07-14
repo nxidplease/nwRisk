@@ -2,6 +2,7 @@ const FIRST_TRADING_REINF_COUNT = 4;
 const MAX_TRADING_REINF = 30;
 const COLOR_AREA_NAME_MAP_PATH = 'data/colorToAreaName.json';
 const AREAS_DATA_PATH = 'data/areas.json';
+const CONTINENTS_DATA_PATH = 'data/continents.json';
 let RandomOrg = require('random-org');
 // An object that defines game states
 const GAME_STATES = {
@@ -43,10 +44,11 @@ function Game() {
     this.continents = [];
     this.currPlayerIndex = 0;
     this.guiManager;
-    this.fillAreas = function (colorMap) {
-        var colorAreaNameMap = JSON.parse(fs.readFileSync(COLOR_AREA_NAME_MAP_PATH, 'utf-8'));
-        var areas = JSON.parse(fs.readFileSync(AREAS_DATA_PATH, 'utf-8'));
-        return [areas, colorAreaNameMap];
+    this.readData = function () {
+        let colorAreaNameMap = JSON.parse(fs.readFileSync(COLOR_AREA_NAME_MAP_PATH, 'utf-8'));
+        let areas = JSON.parse(fs.readFileSync(AREAS_DATA_PATH, 'utf-8'));
+        let continents = JSON.parse(fs.readFileSync(CONTINENTS_DATA_PATH, 'utf-8'));
+        return [areas, colorAreaNameMap, continents];
     }
     this.guiManager = new Gui(this);
     this.preload = this.guiManager.preload;

@@ -1,16 +1,17 @@
 const GAME_MAP_PATH = 'assets/risk-colored-small.jpg';
 const COLOR_MAP_PATH = 'assets/risk-colored-small-color-map.bmp';
 // UI Elements
-var currTurnP;
-var nextPhaseButton;
-var gameMap;
-var colorMap;
-var centerSize = 25;
-var currPlayer;
-var waitingForGameLogic = true;
-var colorAreaNameMap;
-var highlightedAreaName = '';
-var areas;
+let currTurnP;
+let nextPhaseButton;
+let gameMap;
+let colorMap;
+let centerSize = 25;
+let currPlayer;
+let waitingForGameLogic = true;
+let colorAreaNameMap;
+let highlightedAreaName = '';
+let areas;
+let continents;
 // Const key codes
 const KEY_MAP = {
     'SPACE': 32
@@ -20,8 +21,8 @@ const KEY_MAP = {
     , 's': 83
     , 'c': 67
 };
-var mouseMode = false;
-var keys = [];
+let mouseMode = false;
+let keys = [];
 
 function Gui(game) {
     const cardsFolder = 'assets/Cards/';
@@ -33,10 +34,11 @@ function Gui(game) {
         loadImage(COLOR_MAP_PATH, function (image) {
             colorMap = image;
             colorMap.loadPixels();
-            var colorAndAreas = game.fillAreas(colorMap);
-            game.areas = colorAndAreas[0];
+            let data = game.readData();
+            game.areas = data[0];
             areas = game.areas;
-            colorAreaNameMap = colorAndAreas[1];
+            colorAreaNameMap = data[1];
+            continents = data[2];
         })
         fs.readdirSync(cardsFolder).forEach(file => {
             loadImage(cardsFolder + file, function (image) {
@@ -99,7 +101,7 @@ function Gui(game) {
         nextPhaseButton.show();
     }
     this.removePreviousEventListeners = function () {
-        for (var ev in nextPhaseButton._events) {
+        for (let ev in nextPhaseButton._events) {
             nextPhaseButton.elt.removeEventListener(ev, nextPhaseButton._events[ev]);
         }
         // Clean events map
@@ -125,7 +127,7 @@ function Gui(game) {
         gameMap.updatePixels();
     }
     this.resetHighlight = function (areaName) {
-        var areaPix;
+        let areaPix;
         if (areaName) {
             areaPix = areas[areaName].pixPos;
         }
@@ -139,11 +141,11 @@ function Gui(game) {
         gameMap.updatePixels();
     }
     this.highlightPixel = function (x, y) {
-        var pixIndex = 4 * (x + y * gameMap.width);
+        let pixIndex = 4 * (x + y * gameMap.width);
         // For starters make the pixel greener
-        var r = gameMap.pixels[pixIndex];
-        var g = gameMap.pixels[pixIndex + 1];
-        var b = gameMap.pixels[pixIndex + 2];
+        let r = gameMap.pixels[pixIndex];
+        let g = gameMap.pixels[pixIndex + 1];
+        let b = gameMap.pixels[pixIndex + 2];
         if (r != 0 && g != 0 && b != 0) {
             gameMap.pixels[pixIndex] = r * 0.5;
             gameMap.pixels[pixIndex + 1] = (g * 0.5 + 100) % 256;
@@ -151,16 +153,16 @@ function Gui(game) {
         }
     }
     this.setPixColor = function (x, y, rgb) {
-        var pixIndex = 4 * (x + y * gameMap.width);
+        let pixIndex = 4 * (x + y * gameMap.width);
         gameMap.pixels[pixIndex] = rgb[0];
         gameMap.pixels[pixIndex + 1] = rgb[1];
         gameMap.pixels[pixIndex + 2] = rgb[2];
     }
     this.drawAreaCenters = function () {
-            for (var area in areas) {
+            for (let area in areas) {
                 if (areas.hasOwnProperty(area)) {
                     if ('units' in areas[area]) {
-                        var unitsStr = areas[area].units.toString();
+                        let unitsStr = areas[area].units.toString();
                         push();
                         colorMode(HSB);
                         fill(areas[area].owner.color);
@@ -182,7 +184,7 @@ function Gui(game) {
     this.areaAdjacencyFunc = function (currArea, opts) {
         if (currArea.name in currPlayer.areas && currArea.units > 1) {
             for (i = 0; i < currArea.adjacentAreaNames.length; i++) {
-                var adjacentAreaName = currArea.adjacentAreaNames[i];
+                let adjacentAreaName = currArea.adjacentAreaNames[i];
                 // Only if func returns true we want to return
                 // otherwise we want the loop to continue
                 if (this.isAreaAdjacentToSourceOrFof(adjacentAreaName, opts)) {
@@ -193,7 +195,7 @@ function Gui(game) {
         return false;
     }
     this.isAreaAdjacentToSourceOrFof = function (adjacentAreaName, opts) {
-            var ownedByPlayer = (adjacentAreaName in currPlayer.areas);
+            let ownedByPlayer = (adjacentAreaName in currPlayer.areas);
             return (((opts.adjacentToFoe && !ownedByPlayer) || (!opts.adjacentToFoe && ownedByPlayer)));
         }
         /*
@@ -245,8 +247,8 @@ function Gui(game) {
                     this.resetHighlight();
                 }
                 if (currentColor in colorAreaNameMap) {
-                    var currAreaName = colorAreaNameMap[currentColor];
-                    var highlight = false;
+                    let currAreaName = colorAreaNameMap[currentColor];
+                    let highlight = false;
                     switch (this.gameState) {
                     case GAME_STATES.DEPLOY_UNCLAIMED:
                         {
@@ -262,8 +264,8 @@ function Gui(game) {
                     case GAME_STATES.BTTL:
                         {
                             if (this.source) {
-                                var adjacentToSource = this.source.adjacentAreaNames.indexOf(currAreaName) != -1;
-                                var ownedByPlayer = currAreaName in currPlayer.areas;
+                                let adjacentToSource = this.source.adjacentAreaNames.indexOf(currAreaName) != -1;
+                                let ownedByPlayer = currAreaName in currPlayer.areas;
                                 highlight = adjacentToSource && !ownedByPlayer;
                             }
                             else {
@@ -406,10 +408,10 @@ function Gui(game) {
         return (mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height);
     }
     this.getCurrColor = function () {
-        var r = colorMap.pixels[4 * (mouseX + mouseY * colorMap.width)];
-        var g = colorMap.pixels[4 * (mouseX + mouseY * colorMap.width) + 1];
-        var b = colorMap.pixels[4 * (mouseX + mouseY * colorMap.width) + 2];
-        var a = colorMap.pixels[4 * (mouseX + mouseY * colorMap.width) + 3];
+        let r = colorMap.pixels[4 * (mouseX + mouseY * colorMap.width)];
+        let g = colorMap.pixels[4 * (mouseX + mouseY * colorMap.width) + 1];
+        let b = colorMap.pixels[4 * (mouseX + mouseY * colorMap.width) + 2];
+        let a = colorMap.pixels[4 * (mouseX + mouseY * colorMap.width) + 3];
         return (hex(r, 2) + hex(g, 2) + hex(b, 2));
     }
     this.resetGui = function () {
