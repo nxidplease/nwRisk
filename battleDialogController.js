@@ -147,8 +147,8 @@ function BattleDialogController(sourceArea, destArea, generateRandoms, guiCb) {
 /*
     This class is in charge of building the html of the dialog
 */
-function UnitAmountSelector() {
-    let headerBodyBackground = getModalHeaderBodyBgDivs();
+let UnitAmountSelector = (function UnitAmountSelector() {
+    let headerBodyBackground;
     let updateSlider = function ({
         max, min = 1, startingVal = max, sliderOut
     }) {
@@ -238,6 +238,7 @@ function UnitAmountSelector() {
         updateActionButton(opts.btnTxt, opts.btnCallback);
     }
     UnitAmountSelector.create = function (opts) {
+        headerBodyBackground = getModalHeaderBodyBgDivs();
         updateHeader(opts.phaseNoun);
         createSliderForm(opts);
         updateActionButton(opts.btnTxt, opts.btnCallback);
@@ -266,12 +267,12 @@ function UnitAmountSelector() {
     UnitAmountSelector.hide = function () {
         headerBodyBackground.background.hide();
     }
-}
-
-function diceResultWindow() {
-    let headerBodyBg = getModalHeaderBodyBgDivs();
-    let heading = createElement('h2', 'Battle Results');
-    removeEltFromParent(heading);
+    return UnitAmountSelector;
+})();
+let diceResultWindow = (function diceResultWindow() {
+    let headerBodyBg;
+    let heading;
+    //removeEltFromParent(heading);
     let generatePseudoRandom = function () {
         return Math.floor((Math.random() * 6) + 1);
     }
@@ -440,6 +441,8 @@ function diceResultWindow() {
         }
     }
     let createResultWindowElements = function (attacking, defending, keepFightingCallback) {
+        headerBodyBg = getModalHeaderBodyBgDivs();
+        heading = createElement('h2', 'Battle Results');
         diceResultWindow.diceDiv = createDiceDiv(attacking, defending);
         diceResultWindow.retreatBtn = createRetreatButton();
         diceResultWindow.keepFightingBtn = createKeepFighting(keepFightingCallback);
@@ -506,4 +509,5 @@ function diceResultWindow() {
         diceResultWindow.attackerDice.forEach(removeDie);
         diceResultWindow.defenderDice.forEach(removeDie);
     }
-}
+    return diceResultWindow;
+})();

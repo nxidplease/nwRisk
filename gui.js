@@ -26,7 +26,8 @@ let keys = [];
 
 function Gui(game) {
     const cardsFolder = 'assets/Cards/';
-    this.preload = function () {
+
+    function preload() {
         loadImage(GAME_MAP_PATH, function (image) {
             gameMap = image;
             gameMap.loadPixels();
@@ -47,35 +48,36 @@ function Gui(game) {
             })
         });
     }
-    this.guiInit = function () {
-            UnitAmountSelector();
-            diceResultWindow();
-            currTurnP = createP('Waiting For: ');
-            nextPhaseButton = createButton('Next Phase');
-            nextPhaseButton.hide();
-        }
-        // Control functions
-        // player - The player who's turn it is
-        //
-        // amount - The amount of unit he should be allowed to place(optional, 
-        //          if specified the amount will be limited, otherwise the player 
-        //          may choose how many units he would like to place)
-        // unclaimed - A boolean specifing whether or not the player should be forced to place units on unclaimed areas
-        //
-        // callback - A function that will be called when the player finished, recieved a parameter(amount of units placed)
-    this.nextGameState = function (player, callback, gameState, ...args) {
+
+    function guiInit() {
+        currTurnP = createP('Waiting For: ');
+        nextPhaseButton = createButton('Next Phase');
+        nextPhaseButton.hide();
+    }
+    /* Control functions
+       player - The player who's turn it is
+
+       amount - The amount of unit he should be allowed to place(optional, 
+                if specified the amount will be limited, otherwise the player 
+                may choose how many units he would like to place)
+       unclaimed - A boolean specifing whether or not the player should be forced to place units on unclaimed areas
+
+       callback - A function that will be called when the player finished, recieved a parameter(amount of units placed)
+    */
+    function nextGameState(player, callback, gameState, ...args) {
         this.gameState = gameState;
         this.callback = callback;
         this.setCurrPlayer(player);
         this.args = args;
         waitingForGameLogic = false;
     }
-    this.setCurrPlayer = function (player) {
-            currPlayer = player;
-            this.onPlayerChange();
-        }
-        // Events
-    this.onPlayerChange = function () {
+
+    function setCurrPlayer(player) {
+        currPlayer = player;
+        this.onPlayerChange();
+    }
+    // Events
+    function onPlayerChange() {
         this.updatePlayerStatus();
         switch (this.gameState) {
         case GAME_STATES.DEPLOY_CLAIMED:
@@ -95,93 +97,61 @@ function Gui(game) {
             }
         }
     }
-    this.showNextButton = function () {
+
+    function showNextButton() {
         this.removePreviousEventListeners();
         nextPhaseButton.mousePressed(this.callback);
         nextPhaseButton.show();
     }
-    this.removePreviousEventListeners = function () {
+
+    function removePreviousEventListeners() {
         for (let ev in nextPhaseButton._events) {
             nextPhaseButton.elt.removeEventListener(ev, nextPhaseButton._events[ev]);
         }
         // Clean events map
         nextPhaseButton._events = {};
     }
-    this.updatePlayerStatus = function () {
-            // Update curr player paragraph
-            currTurnP.html('Waiting for: ' + currPlayer.name + '<br> Units Left: ' + currPlayer.unitsToPlace);
-        }
-        // Drawing
-    this.draw = function () {
+
+    function updatePlayerStatus() {
+        // Update curr player paragraph
+        currTurnP.html('Waiting for: ' + currPlayer.name + '<br> Units Left: ' + currPlayer.unitsToPlace);
+    }
+    // Drawing
+    function draw() {
         background(255);
         image(gameMap, 0, 0);
         this.drawAreaCenters();
     }
-    this.highlightArea = function (area) {
-        // Set highlighted area name
-        highlightedAreaName = area.name;
-        // highlight all pixels of the area
-        for (i = 0; i < area.pixPos.length; i++) {
-            this.highlightPixel(area.pixPos[i].x, area.pixPos[i].y);
-        }
-        gameMap.updatePixels();
+
+    function clearAreaHighlight() {
+        areaHighlighter.resetAreaHighlight(areas, highlightedAreaName, gameMap);
+        highlightedAreaName = '';
     }
-    this.resetHighlight = function (areaName) {
-        let areaPix;
-        if (areaName) {
-            areaPix = areas[areaName].pixPos;
-        }
-        else {
-            areaPix = areas[highlightedAreaName].pixPos;
-            highlightedAreaName = '';
-        }
-        for (i = 0; i < areaPix.length; i++) {
-            this.setPixColor(areaPix[i].x, areaPix[i].y, areaPix[i].rgb);
-        }
-        gameMap.updatePixels();
-    }
-    this.highlightPixel = function (x, y) {
-        let pixIndex = 4 * (x + y * gameMap.width);
-        // For starters make the pixel greener
-        let r = gameMap.pixels[pixIndex];
-        let g = gameMap.pixels[pixIndex + 1];
-        let b = gameMap.pixels[pixIndex + 2];
-        if (r != 0 && g != 0 && b != 0) {
-            gameMap.pixels[pixIndex] = r * 0.5;
-            gameMap.pixels[pixIndex + 1] = (g * 0.5 + 100) % 256;
-            gameMap.pixels[pixIndex + 2] = b * 0.5;
-        }
-    }
-    this.setPixColor = function (x, y, rgb) {
-        let pixIndex = 4 * (x + y * gameMap.width);
-        gameMap.pixels[pixIndex] = rgb[0];
-        gameMap.pixels[pixIndex + 1] = rgb[1];
-        gameMap.pixels[pixIndex + 2] = rgb[2];
-    }
-    this.drawAreaCenters = function () {
-            for (let area in areas) {
-                if (areas.hasOwnProperty(area)) {
-                    if ('units' in areas[area]) {
-                        let unitsStr = areas[area].units.toString();
-                        push();
-                        colorMode(HSB);
-                        fill(areas[area].owner.color);
-                        noStroke();
-                        ellipse(areas[area].center.x, areas[area].center.y, centerSize);
-                        rectMode(CENTER);
-                        fill(255);
-                        text(unitsStr, areas[area].center.x, areas[area].center.y, textWidth(unitsStr), textSize());
-                        pop();
-                    }
+
+    function drawAreaCenters() {
+        for (let area in areas) {
+            if (areas.hasOwnProperty(area)) {
+                if ('units' in areas[area]) {
+                    let unitsStr = areas[area].units.toString();
+                    push();
+                    colorMode(HSB);
+                    fill(areas[area].owner.color);
+                    noStroke();
+                    ellipse(areas[area].center.x, areas[area].center.y, centerSize);
+                    rectMode(CENTER);
+                    fill(255);
+                    text(unitsStr, areas[area].center.x, areas[area].center.y, textWidth(unitsStr), textSize());
+                    pop();
                 }
             }
         }
-        /*
-            Loops through the adjacent areas of currArea and executes isAreaAdjacentToSourceOrFof on them to determine
-            if a certian condition is met
-            
-        */
-    this.areaAdjacencyFunc = function (currArea, opts) {
+    }
+    /*
+        Loops through the adjacent areas of currArea and executes isAreaAdjacentToSourceOrFof on them to determine
+        if a certian condition is met
+        
+    */
+    function areaAdjacencyFunc(currArea, opts) {
         if (currArea.name in currPlayer.areas && currArea.units > 1) {
             for (i = 0; i < currArea.adjacentAreaNames.length; i++) {
                 let adjacentAreaName = currArea.adjacentAreaNames[i];
@@ -194,57 +164,60 @@ function Gui(game) {
         }
         return false;
     }
-    this.isAreaAdjacentToSourceOrFof = function (adjacentAreaName, opts) {
-            let ownedByPlayer = (adjacentAreaName in currPlayer.areas);
-            return (((opts.adjacentToFoe && !ownedByPlayer) || (!opts.adjacentToFoe && ownedByPlayer)));
-        }
-        /*
-            Returns true if there is a path from sourceArea to destArea
-            of areas owned by the same player
-        */
-    this.pathOfSameOwner = function (sourceArea, destArea) {
-            let result = false;
-            sourceArea.explored = true;
-            for (areaName of sourceArea.adjacentAreaNames) {
-                if (areaName === destArea.name) {
-                    // If destArea is an immediate adjacent area we 
-                    // shuld return right away without checking the rest of the areas
+
+    function isAreaAdjacentToSourceOrFof(adjacentAreaName, opts) {
+        let ownedByPlayer = (adjacentAreaName in currPlayer.areas);
+        return (((opts.adjacentToFoe && !ownedByPlayer) || (!opts.adjacentToFoe && ownedByPlayer)));
+    }
+    /*
+        Returns true if there is a path from sourceArea to destArea
+        of areas owned by the same player
+    */
+    function pathOfSameOwner(sourceArea, destArea) {
+        let result = false;
+        sourceArea.explored = true;
+        for (areaName of sourceArea.adjacentAreaNames) {
+            if (areaName === destArea.name) {
+                // If destArea is an immediate adjacent area we 
+                // shuld return right away without checking the rest of the areas
+                result = true;
+                break;
+            }
+            else if ((areas[areaName].owner.name === destArea.owner.name) && (!areas[areaName].explored)) {
+                if (this.pathOfSameOwner(areas[areaName], destArea)) {
+                    // We want to return as soon as there is a true result,
+                    // otherwise we want the loop to continue
                     result = true;
                     break;
                 }
-                else if ((areas[areaName].owner.name === destArea.owner.name) && (!areas[areaName].explored)) {
-                    if (this.pathOfSameOwner(areas[areaName], destArea)) {
-                        // We want to return as soon as there is a true result,
-                        // otherwise we want the loop to continue
-                        result = true;
-                        break;
-                    }
-                }
-            }
-            delete sourceArea.explored;
-            return result;
-        }
-        /*
-            This function returns true if there is a path of
-            areas that are owned by sourceArea owner leading to destArea
-            that is also owned by sourceArea owner
-        */
-    this.areaReachableFromSource = function (destAreaName) {
-            let destArea = areas[destAreaName];
-            if (destArea.owner.name !== this.source.owner.name) {
-                return false;
-            }
-            else {
-                return this.pathOfSameOwner(this.source, destArea);
             }
         }
-        // IO
-    this.mouseMoved = function () {
+        delete sourceArea.explored;
+        return result;
+    }
+    /*
+        This function returns true if there is a path of
+        areas that are owned by sourceArea owner leading to destArea
+        that is also owned by sourceArea owner
+    */
+    function areaReachableFromSource(destAreaName) {
+        let destArea = areas[destAreaName];
+        if (destArea.owner.name !== this.source.owner.name) {
+            return false;
+        }
+        else {
+            return this.pathOfSameOwner(this.source, destArea);
+        }
+    }
+    // IO
+    function mouseMoved() {
         if (!waitingForGameLogic) {
             if (mouseX < colorMap.width && mouseY < colorMap.height) {
-                currentColor = this.getCurrColor();
+                //currentColor = this.getCurrColor();
+                currentColor = areaHighlighter.getCurrColor(colorMap, mouseX, mouseY);
                 if (highlightedAreaName.localeCompare('') != 0) {
-                    this.resetHighlight();
+                    clearAreaHighlight();
+                    //this.resetAreaHighlight();
                 }
                 if (currentColor in colorAreaNameMap) {
                     let currAreaName = colorAreaNameMap[currentColor];
@@ -289,13 +262,16 @@ function Gui(game) {
                         }
                     }
                     if (highlight) {
-                        this.highlightArea(areas[currAreaName]);
+                        highlightedAreaName = currAreaName;
+                        areaHighlighter.highlightArea(areas[currAreaName], gameMap);
+                        //this.highlightArea(areas[currAreaName]);
                     }
                 }
             }
         }
     }
-    this.mousePressed = function mousePressed() {
+
+    function mousePressed() {
         if (!waitingForGameLogic) {
             if (mouseButton == LEFT && this.mouseWithinCanvas()) {
                 if (highlightedAreaName in areas) {
@@ -331,7 +307,9 @@ function Gui(game) {
                             if (this.source) {
                                 waitingForGameLogic = true;
                                 let btlDialog = new BattleDialogController(this.source, areas[highlightedAreaName], this.args[0], () => {
-                                    this.resetHighlight();
+                                    areaHighlighter.resetAreaHighlight(areas, highlightedAreaName, gameMap);
+                                    highlightedAreaName = '';
+                                    //this.resetAreaHighlight();
                                     this.source = undefined;
                                     waitingForGameLogic = false;
                                 });
@@ -370,7 +348,8 @@ function Gui(game) {
             }
         }
     }
-    this.mouseDragged = function () {
+
+    function mouseDragged() {
         /* if (this.mouseWithinCanvas() && (highlightedAreaName in areas)) {
              areas[highlightedAreaName].center = {
                  'x': mouseX
@@ -378,8 +357,10 @@ function Gui(game) {
              };
          }*/
     }
-    this.handleMouseWheel = function (e) {}
-    this.keyPressed = function () {
+
+    function handleMouseWheel(e) {}
+
+    function keyPressed() {
         if (!waitingForGameLogic) {
             // Safegaurd
             if (keys.indexOf(keyCode) == -1) {
@@ -387,36 +368,33 @@ function Gui(game) {
             }
         }
     }
-    this.keyReleased = function () {
+
+    function keyReleased() {
         if (!waitingForGameLogic) {
             if (keys.indexOf(keyCode) != -1) {
                 keys.slice(keys.indexOf(keyCode), 1);
             }
         }
     }
-    this.keyComboPressed = function (keyCombo) {
-            for (i = 0; i < keyCombo.length; i++) {
-                if (keys.indexOf(keyCombo[i]) == -1) {
-                    return false;
-                }
+
+    function keyComboPressed(keyCombo) {
+        for (i = 0; i < keyCombo.length; i++) {
+            if (keys.indexOf(keyCombo[i]) == -1) {
+                return false;
             }
-            // Guarding against states when key combo is pressed with additional characters
-            return true && (keys.length == keyCombo.length);
         }
-        // Helper Functions
-    this.mouseWithinCanvas = function () {
+        // Guarding against states when key combo is pressed with additional characters
+        return true && (keys.length == keyCombo.length);
+    }
+    // Helper Functions
+    function mouseWithinCanvas() {
         return (mouseX > 0 && mouseX < width && mouseY > 0 && mouseY < height);
     }
-    this.getCurrColor = function () {
-        let r = colorMap.pixels[4 * (mouseX + mouseY * colorMap.width)];
-        let g = colorMap.pixels[4 * (mouseX + mouseY * colorMap.width) + 1];
-        let b = colorMap.pixels[4 * (mouseX + mouseY * colorMap.width) + 2];
-        let a = colorMap.pixels[4 * (mouseX + mouseY * colorMap.width) + 3];
-        return (hex(r, 2) + hex(g, 2) + hex(b, 2));
-    }
-    this.resetGui = function () {
+
+    function resetGui() {
         if (highlightedAreaName in areas) {
-            this.resetHighlight();
+            clearAreaHighlight();
+            //this.resetAreaHighlight();
         }
         // Wait until callback calls gui again
         nextPhaseButton.elt.disabled = true;
