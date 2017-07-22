@@ -1,0 +1,29 @@
+[
+    {
+        "name": "North America"
+        , "areanames": ["Alaska", "Alberta", "Central America", "Eastern United States", "Greenland", "Northwest Territory", "Ontario", "Quebec", "Western United States"]
+        , "unitsBonus": 5
+    }
+    , {
+        "name": "South America"
+        , "areanames": ["Argentina", "Brazil", "Peru", "Venezuela"]
+        , "unitsBonus": 2
+    }
+    , {
+        "name": "Europe"
+        , "areanames": ["Great Britain", "Iceland", "Northern Europe", "Scandinavia", "Southern Europe", "Ukraine", "Western Europe"]
+        , "unitsBonus": 5
+    }, {
+        "name": "Africa"
+        , "areanames": ["Congo", "East Africa", "Egypt", "Madagascar", "North Africa", "South Africa"]
+        , "unitsBonus": 3
+    }, {
+        "name": "Asia"
+        , "areanames": ["Afghanistan", "China", "India", "Irkutsk", "Japan", "Kamchatka", "Middle East", "Mongolia", "Siam", "Siberia", "Ural", "Yakutsk"]
+        , "unitsBonus": 7
+    }, {
+        "name": "Australia"
+        , "areanames": ["Eastern Australia", "Indonesia", "New Guinea", "Western Australia"]
+        , "unitsBonus": 2
+    }
+]

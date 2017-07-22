@@ -2,17 +2,13 @@
 var fs = require('fs');
 var nw = require('nw.gui');
 var win = nw.Window.get();
-
 // Game
 var gameManager = new Game();
-
 var nxtAreaId = 0;
-
 preload = gameManager.preload.bind(gameManager);
 
 function setup() {
     var mainDiv = select('#mainDiv');
-
     // IO propagation
     keyPressed = gameManager.keyPressed.bind(gameManager);
     keyReleased = gameManager.keyReleased.bind(gameManager);
@@ -34,17 +30,14 @@ function setup() {
     gameManager.start();
 }
 
-
-function saveToFile() {
-    fs.writeFileSync('./data/areas.json', JSON.stringify(gameManager.areas), 'utf-8');
+function saveToFile(dest, obj) {
+    fs.writeFileSync(dest, JSON.stringify(obj), 'utf-8');
 }
 
 function cloneArray(arr) {
     var newArr = [];
-
     for (i = 0; i < arr.length; i++) {
         newArr.push(arr[i]);
     }
-
     return newArr;
 }
